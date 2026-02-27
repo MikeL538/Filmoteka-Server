@@ -1,13 +1,13 @@
 import express from "express";
 import cors from "cors";
+import fs from "fs/promises";
+import type { promises } from "dns";
 
 export const app = express();
 
 app.use(cors());
 app.use(express.json());
 console.log("test");
-
-const TEST_TOKEN = "filmoteka-test-token";
 
 type User = {
   id: number;
@@ -17,22 +17,40 @@ type User = {
   queued: number[];
 };
 
-const users: User[] = [
-  {
-    id: 1,
-    login: "test",
-    password: "test",
-    watched: [603, 238],
-    queued: [155, 27205],
-  },
-  {
-    id: 2,
-    login: "test2",
-    password: "test2",
-    watched: [1236153, 1272837, 1428862],
-    queued: [755, 2205],
-  },
-];
+async function loadUsers(): Promise<User[]> {
+  try {
+    const data = await fs.readFile("src/users.json", "utf-8");
+    const parsed = JSON.parse(data) as { users: User[] };
+    return parsed.users ?? [];
+  } catch (error) {
+    console.log("Error loading users: ", error);
+    return [];
+  }
+}
+
+async function saveUsers(users: User[]): Promise<void> {
+  await fs.writeFile(
+    "src/users.json",
+    JSON.stringify({ users }, null, 2),
+    "utf-8",
+  );
+}
+
+async function addUser(userData: Omit<User, "id">): Promise<User> {
+  const users = await loadUsers();
+
+  const newUser: User = {
+    id: users.length ? Math.max(...users.map((u) => u.id)) + 1 : 1,
+    ...userData,
+  };
+
+  users.push(newUser);
+  await saveUsers(users);
+
+  return newUser;
+}
+
+const users: User[] = await loadUsers();
 
 function getBearerToken(authHeader?: string): string | null {
   if (!authHeader?.startsWith("Bearer ")) return null;
@@ -52,7 +70,7 @@ function getUserFromAuthHeader(authHeader?: string) {
 }
 
 app.get("/health", (_req, res) => {
-  res.status(200).json({ ok: true, service: "filmoteka-server" });
+  res.status(200).json({ ok: true, service: "filmovie-server" });
 });
 
 app.post("/api/auth/login", (req, res) => {
@@ -85,7 +103,7 @@ app.get("/api/users/me/lists", (req, res) => {
   });
 });
 
-app.put("/api/users/me/lists/:listName", (req, res) => {
+app.put("/api/users/me/lists/:listName", async (req, res) => {
   const user = getUserFromAuthHeader(req.headers.authorization);
 
   if (!user) {
@@ -108,9 +126,41 @@ app.put("/api/users/me/lists/:listName", (req, res) => {
     .filter((id) => Number.isFinite(id));
 
   user[listName] = normalizedIds;
+  await saveUsers(users);
 
   return res.status(200).json({
     watched: user.watched,
     queued: user.queued,
+  });
+});
+
+app.post("/api/auth/register", async (req, res) => {
+  const { login, password } = req.body ?? {};
+
+  if (!login || !password) {
+    return res.status(400).json({ message: "Login and password are required" });
+  }
+
+  const exists = users.some((u) => u.login === login);
+  if (exists) {
+    return res.status(409).json({ message: "Login already exists" });
+  }
+
+  const newUser: User = {
+    id: users.length ? Math.max(...users.map((u) => u.id)) + 1 : 1,
+    login,
+    password,
+    watched: [],
+    queued: [],
+  };
+
+  users.push(newUser);
+  await saveUsers(users);
+
+  const token = `token-${newUser.id}`;
+  return res.status(201).json({
+    token,
+    user: { id: newUser.id, login: newUser.login },
+    lists: { watched: [], queued: [] },
   });
 });

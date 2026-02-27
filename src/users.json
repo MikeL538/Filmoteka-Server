@@ -1,0 +1,49 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "login": "test",
+      "password": "test",
+      "watched": [
+        603,
+        238
+      ],
+      "queued": [
+        155,
+        27205
+      ]
+    },
+    {
+      "id": 2,
+      "login": "test2",
+      "password": "test2",
+      "watched": [
+        1236153,
+        1272837,
+        1428862
+      ],
+      "queued": [
+        755,
+        2205
+      ]
+    },
+    {
+      "id": 3,
+      "login": "test3",
+      "password": "test3",
+      "watched": [],
+      "queued": []
+    },
+    {
+      "id": 4,
+      "login": "Mike",
+      "password": "qwe",
+      "watched": [
+        1159559
+      ],
+      "queued": [
+        1159559
+      ]
+    }
+  ]
+}
