@@ -1,13 +1,26 @@
 import express from "express";
 import cors from "cors";
 import fs from "fs/promises";
-import type { promises } from "dns";
-
 export const app = express();
 
-app.use(cors());
+const allowedOrigins = [
+  "http://localhost:1234", // Parcel dev
+  "http://localhost:3000", // jeśli frontend czasem tu działa
+  "https://mikel538.github.io", // GitHub Pages origin
+];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin))
+        return callback(null, true);
+      return callback(new Error(`CORS blocked for origin: ${origin}`));
+    },
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
+);
 app.use(express.json());
-console.log("test");
 
 type User = {
   id: number;
@@ -34,20 +47,6 @@ async function saveUsers(users: User[]): Promise<void> {
     JSON.stringify({ users }, null, 2),
     "utf-8",
   );
-}
-
-async function addUser(userData: Omit<User, "id">): Promise<User> {
-  const users = await loadUsers();
-
-  const newUser: User = {
-    id: users.length ? Math.max(...users.map((u) => u.id)) + 1 : 1,
-    ...userData,
-  };
-
-  users.push(newUser);
-  await saveUsers(users);
-
-  return newUser;
 }
 
 const users: User[] = await loadUsers();

@@ -38,9 +38,7 @@
       "id": 4,
       "login": "Mike",
       "password": "qwe",
-      "watched": [
-        1159559
-      ],
+      "watched": [],
       "queued": [
         1159559
       ]
