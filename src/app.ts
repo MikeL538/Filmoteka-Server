@@ -1,8 +1,10 @@
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import fs from "fs/promises";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
+import { Resend } from "resend";
 
 export const app = express();
 const SALT_ROUNDS = 12;
@@ -13,8 +15,10 @@ const allowedOrigins = [
   "https://mikel538.github.io", // GitHub Pages origin
 ];
 
-// const API_BASE_URL = "https://filmoteka-server-oso6.onrender.com";
-const API_BASE_URL = "http://localhost:3000";
+const API_BASE_URL = "https://filmoteka-server-oso6.onrender.com";
+// const API_BASE_URL = "http://localhost:3000";
+const resendApiKey = process.env.RESEND_API_KEY;
+const resend = resendApiKey ? new Resend(resendApiKey) : null;
 
 // Testing function for delay
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -132,6 +136,37 @@ app.post("/api/auth/register", async (req, res) => {
 
   const activationLink = `${API_BASE_URL}/api/auth/verify-email?token=${verificationToken}`;
 
+  if (!resend) {
+    console.error(
+      "RESEND_API_KEY is missing. Activation link:",
+      activationLink,
+    );
+    return res.status(500).json({
+      code: "EMAIL_PROVIDER_NOT_CONFIGURED",
+      message: "Email provider is not configured",
+      activationLink,
+    });
+  }
+
+  const { error } = await resend.emails.send({
+    from: "onboarding@resend.dev",
+    to: email,
+    subject: "Verification Filmovie",
+    html: `<a href="${activationLink}">Verification Filmovie</a>`,
+  });
+
+  if (error) {
+    console.error("Failed to send verification email:", error, activationLink);
+    console.log("E-mail verification will show after you log in.");
+    console.log(
+      res.status(502).json({
+        code: "VERIFICATION_EMAIL_FAILED",
+        message: "Failed to send verification email",
+        activationLink,
+      }),
+    );
+  }
+
   const newUser: User = {
     id: users.length ? Math.max(...users.map((u) => u.id)) + 1 : 1 || 0,
     login,
@@ -221,6 +256,34 @@ app.post("/api/auth/login", async (req, res) => {
     token,
     user: { id: user.id, login: user.login },
     lists: { watched: user.watched, queued: user.queued },
+  });
+});
+
+app.post("/api/auth/forgot-password", async (req, res) => {
+  const { login, email, password } = req.body ?? {};
+
+  if (!login || !email || !password) {
+    return res
+      .status(400)
+      .json({ message: "Login, email and password are required" });
+  }
+
+  const user = users.find((u) => u.login === login);
+
+  if (!user || user.email !== email) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+
+  user.hashedPassword = hashedPassword;
+
+  await saveUsers(users);
+
+  const token = `token-${user.id}`;
+  return res.status(200).json({
+    code: "Password changed",
+    message: "Password changed",
   });
 });
 
