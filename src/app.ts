@@ -15,7 +15,7 @@ const allowedOrigins = [
   "https://mikel538.github.io", // GitHub Pages origin
 ];
 
-const API_BASE_URL = "https://filmoteka-server-oso6.onrender.com";
+const API_BASE_URL = "https://filmovie-server.onrender.com";
 // const API_BASE_URL = "http://localhost:3000";
 const resendApiKey = process.env.RESEND_API_KEY;
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
@@ -137,34 +137,32 @@ app.post("/api/auth/register", async (req, res) => {
   const activationLink = `${API_BASE_URL}/api/auth/verify-email?token=${verificationToken}`;
 
   if (!resend) {
-    console.error(
-      "RESEND_API_KEY is missing. Activation link:",
-      activationLink,
-    );
+    console.error("RESEND_API_KEY is missing.");
     return res.status(500).json({
       code: "EMAIL_PROVIDER_NOT_CONFIGURED",
       message: "Email provider is not configured",
-      activationLink,
     });
   }
 
-  const { error } = await resend.emails.send({
-    from: "onboarding@resend.dev",
+  const { data, error } = await resend.emails.send({
+    from: "Filmovie <verify@mail.mikeldev.online>",
     to: email,
-    subject: "Verification Filmovie",
-    html: `<a href="${activationLink}">Verification Filmovie</a>`,
+    subject: "Verify your account",
+    html: `<p>Click <a href="${activationLink}">here</a> to verify Your account or use link below:</p>
+   
+    <p><a href="${activationLink}">${activationLink}</a></p>`,
   });
 
+  if (data) console.log("RESEND DATA:", data);
+  if (error) console.log("RESEND ERROR:", error);
+
   if (error) {
-    console.error("Failed to send verification email:", error, activationLink);
-    console.log("E-mail verification will show after you log in.");
-    console.log(
-      res.status(502).json({
-        code: "VERIFICATION_EMAIL_FAILED",
-        message: "Failed to send verification email",
-        activationLink,
-      }),
-    );
+    console.error("Failed to send verification email:", error);
+
+    return res.status(502).json({
+      code: "VERIFICATION_EMAIL_FAILED",
+      message: "Failed to send verification email",
+    });
   }
 
   const newUser: User = {

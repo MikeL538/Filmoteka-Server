@@ -3,7 +3,7 @@
 Filmovie-Server is the backend API for the Filmovie application. It handles authentication,
 account verification, and per-user movie list persistence used by the frontend.
 
-Production API: https://filmoteka-server-oso6.onrender.com
+Production API: https://filmovie-server.onrender.com
 
 Frontend project: https://github.com/MikeL538/Filmovie
 
@@ -263,7 +263,7 @@ This backend is used by Filmovie for:
 - updating watched and queued lists after user actions
 
 The frontend integration currently lives in the Filmovie repository in:
-`src/ts/api/filmotekaServerApi.ts`
+`src/ts/api/filmovieServerApi.ts`
 
 ## Important Notes
 
