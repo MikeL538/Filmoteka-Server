@@ -2,15 +2,31 @@
   "users": [
     {
       "id": 1,
-      "login": "qwer",
-      "hashedPassword": "$2b$12$4mgeoFM.qGdaEQn8L2j/OeiMdUO6ClFKoTy6P7r5kEb758OaFBske",
+      "login": "qwe",
+      "hashedPassword": "$2b$12$DWT6.aIBewuY/DLuFf1YZuSvAGrq/L8jNHVg7mvbC4QNI2MfmQ2ee",
       "email": "mikel538.work@gmail.com",
-      "verified": false,
-      "verificationTokenHash": "d08825285951753925a5e44446c6743f4be8bdd1f9d1095cd3f9e4c0dfec3d88",
-      "verificationTokenExpiresAt": "2026-03-15T20:15:31.362Z",
+      "verified": true,
+      "verificationTokenHash": null,
+      "verificationTokenExpiresAt": null,
+      "passwordResetTokenHash": "5565e35d1e0874faef40b1bc828837f8a90dbeb2c961910092dc94a8bc1171ce",
+      "passwordResetTokenExpiresAt": "2026-03-16T13:48:26.920Z",
       "watched": [],
       "queued": [],
-      "activationLink": "http://localhost:3000/api/auth/verify-email?token=30af53f0f887f7766881effa881aca4aa9db25e1ee7f1cb73fe108d99f2bcc55"
+      "activationLink": "http://localhost:3000/api/auth/verify-email?token=993eccc093290408e596341283758dc1b1c83966de0d6f5d7e6fa75e649c9093"
+    },
+    {
+      "id": 2,
+      "login": "qwer",
+      "hashedPassword": "$2b$12$YR8eO.Se2jXU9HI4mDTjWe8wDRogvatNFkx03KbZJdLt9zTtiOV6m",
+      "email": "zixlip@gmail.com",
+      "verified": true,
+      "verificationTokenHash": null,
+      "verificationTokenExpiresAt": null,
+      "passwordResetTokenHash": null,
+      "passwordResetTokenExpiresAt": null,
+      "watched": [],
+      "queued": [],
+      "activationLink": "http://localhost:3000/api/auth/verify-email?token=3c1cfbb59fa33c7803cbf21409f56b2ee4dd1a87139e8b193fa5817087bcd848"
     }
   ]
 }

@@ -17,6 +17,9 @@ const allowedOrigins = [
 
 const API_BASE_URL = "https://filmovie-server.onrender.com";
 // const API_BASE_URL = "http://localhost:3000";
+// const FRONTEND_BASE_URL = "http://localhost:1234/Filmovie";
+const FRONTEND_BASE_URL = "https://mikel538.github.io/Filmovie/";
+
 const resendApiKey = process.env.RESEND_API_KEY;
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
 
@@ -44,6 +47,8 @@ type User = {
   verified: boolean;
   verificationTokenHash: string | null;
   verificationTokenExpiresAt: Date | null;
+  passwordResetTokenHash: string | null;
+  passwordResetTokenExpiresAt: Date | null;
   watched: number[];
   queued: number[];
   activationLink: string | null;
@@ -173,6 +178,8 @@ app.post("/api/auth/register", async (req, res) => {
     verified: false,
     verificationTokenHash,
     verificationTokenExpiresAt,
+    passwordResetTokenHash: null,
+    passwordResetTokenExpiresAt: null,
     watched: [],
     queued: [],
     activationLink,
@@ -258,30 +265,107 @@ app.post("/api/auth/login", async (req, res) => {
 });
 
 app.post("/api/auth/forgot-password", async (req, res) => {
-  const { login, email, password } = req.body ?? {};
+  const { email } = req.body ?? {};
 
-  if (!login || !email || !password) {
-    return res
-      .status(400)
-      .json({ message: "Login, email and password are required" });
+  if (!email) {
+    return res.status(400).json({ message: "Email is required" });
   }
 
-  const user = users.find((u) => u.login === login);
+  const user = users.find((u) => u.email === email);
 
-  if (!user || user.email !== email) {
+  if (user?.email !== email) {
     return res.status(401).json({ message: "Unauthorized" });
   }
 
-  const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+  const passwordResetToken = crypto.randomBytes(32).toString("hex");
+  const passwordResetTokenHash = crypto
+    .createHash("sha256")
+    .update(passwordResetToken)
+    .digest("hex");
 
-  user.hashedPassword = hashedPassword;
+  const passwordResetTokenExpiresAt = new Date(
+    Date.now() + 24 * 60 * 60 * 1000,
+  );
+
+  const passwordResetLink = `${FRONTEND_BASE_URL}/reset-password.html?token=${passwordResetToken}`;
+
+  if (!resend) {
+    console.error("RESEND_API_KEY is missing.");
+    return res.status(500).json({
+      code: "EMAIL_PROVIDER_NOT_CONFIGURED",
+      message: "Email provider is not configured",
+    });
+  }
+
+  const { data, error } = await resend.emails.send({
+    from: "Filmovie <reset-password@mail.mikeldev.online>",
+    to: email,
+    subject: "Reset your password",
+    html: `<p>Click <a href="${passwordResetLink}">here</a> to reset Your password or use link below:</p>
+   
+    <p><a href="${passwordResetLink}">${passwordResetLink}</a></p>`,
+  });
+
+  if (data) console.log("RESEND DATA:", data);
+  if (error) console.log("RESEND ERROR:", error);
+
+  if (error) {
+    console.error("Failed to send verification email:", error);
+
+    return res.status(502).json({
+      code: "VERIFICATION_EMAIL_FAILED",
+      message: "Failed to send verification email",
+    });
+  }
+
+  user!.passwordResetTokenHash = passwordResetTokenHash;
+  user!.passwordResetTokenExpiresAt = passwordResetTokenExpiresAt;
 
   await saveUsers(users);
 
-  const token = `token-${user.id}`;
   return res.status(200).json({
     code: "Password changed",
     message: "Password changed",
+  });
+});
+
+app.post("/api/auth/reset-password", async (req, res) => {
+  const { token, password } = req.body ?? {};
+
+  if (!token) {
+    return res.status(400).json({ code: "TOKEN_REQUIRED" });
+  }
+
+  if (!password) {
+    return res.status(400).json({ code: "PASSWORD_REQUIRED" });
+  }
+
+  const tokenHash = crypto
+    .createHash("sha256")
+    .update(String(token))
+    .digest("hex");
+  const user = users.find((u) => u.passwordResetTokenHash === tokenHash);
+
+  if (!user) {
+    return res.status(400).json({ code: "INVALID_TOKEN" });
+  }
+
+  if (
+    !user.passwordResetTokenExpiresAt ||
+    new Date(user.passwordResetTokenExpiresAt).getTime() < Date.now()
+  ) {
+    return res.status(400).json({ code: "TOKEN_EXPIRED" });
+  }
+
+  user.hashedPassword = await bcrypt.hash(String(password), SALT_ROUNDS);
+  user.passwordResetTokenHash = null;
+  user.passwordResetTokenExpiresAt = null;
+
+  await saveUsers(users);
+
+  return res.status(200).json({
+    code: "PASSWORD_RESET_SUCCESS",
+    message: "Password changed successfully",
   });
 });
 
