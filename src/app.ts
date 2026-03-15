@@ -18,7 +18,7 @@ const allowedOrigins = [
 const API_BASE_URL = "https://filmovie-server.onrender.com";
 // const API_BASE_URL = "http://localhost:3000";
 // const FRONTEND_BASE_URL = "http://localhost:1234/Filmovie";
-const FRONTEND_BASE_URL = "https://mikel538.github.io/Filmovie/";
+const FRONTEND_BASE_URL = "https://mikel538.github.io/Filmovie";
 
 const resendApiKey = process.env.RESEND_API_KEY;
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
