@@ -12,6 +12,8 @@ model User {
   login                        String    @unique
   hashedPassword               String
   email                        String    @unique
+  termsAcceptedAt              DateTime?
+
 
   verified                     Boolean   @default(false)
   verificationTokenHash        String?

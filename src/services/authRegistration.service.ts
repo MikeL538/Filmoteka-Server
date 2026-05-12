@@ -26,7 +26,7 @@ async function sendVerificationEmail(email: string, activationLink: string) {
 }
 
 export async function register(req: Request, res: Response) {
-  const { login, password, email } = req.body ?? {};
+  const { login, password, email, termsAccepted } = req.body ?? {};
 
   if (!login || !password || !email) {
     return res.status(400).json({ message: "Login and password are required" });
@@ -81,6 +81,13 @@ export async function register(req: Request, res: Response) {
       .json({ code: "EMAIL_ALREADY_EXISTS", message: "Email already exists" });
   }
 
+  if (termsAccepted !== true) {
+    return res.status(422).json({
+      code: "TERMS_NOT_ACCEPTED",
+      message: "Terms must be accepted",
+    });
+  }
+
   const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
   const verificationToken = crypto.randomBytes(32).toString("hex");
@@ -106,6 +113,7 @@ export async function register(req: Request, res: Response) {
       login: loginFormat,
       hashedPassword,
       email,
+      termsAcceptedAt: new Date(),
       verified: false,
       verificationTokenHash,
       verificationTokenExpiresAt,
